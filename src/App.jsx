@@ -4,11 +4,13 @@ import SearchBar from './components/SearchBar'
 import Filters from './components/Filters'
 import RestaurantList from './components/RestaurantList'
 import RestaurantDetail from './components/RestaurantDetail'
-import { restaurants } from './data/restaurants'
+import { restaurants as mockRestaurants } from './data/restaurants'
+import { useGoogleRestaurants } from './hooks/useGoogleRestaurants'
 
 function App() {
-  const [allRestaurants] = useState(restaurants);
-  const [filteredRestaurants, setFilteredRestaurants] = useState(restaurants);
+  const { restaurants: googleRestaurants, loading, initialized, fetchRestaurants } = useGoogleRestaurants();
+  const [allRestaurants, setAllRestaurants] = useState(mockRestaurants);
+  const [filteredRestaurants, setFilteredRestaurants] = useState(mockRestaurants);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
@@ -16,6 +18,22 @@ function App() {
     price: 'all',
     dietary: []
   });
+  const [useGoogleData, setUseGoogleData] = useState(false);
+
+  // Handle search suggestions from no-results page
+  useEffect(() => {
+    const handleSearchSuggestion = (event) => {
+      const suggestion = event.detail;
+      setSearchQuery(suggestion);
+      // Use a timeout to avoid immediate execution issues
+      setTimeout(() => {
+        handleSearch(suggestion);
+      }, 0);
+    };
+    
+    window.addEventListener('searchSuggestion', handleSearchSuggestion);
+    return () => window.removeEventListener('searchSuggestion', handleSearchSuggestion);
+  }, []); // Empty dependency array since handleSearch is defined in the same component
 
   // Apply filters when they change
   useEffect(() => {
@@ -55,8 +73,31 @@ function App() {
     setFilteredRestaurants(results);
   }, [searchQuery, filters, allRestaurants]);
 
-  const handleSearch = (query) => {
+  const handleSearch = async (query) => {
     setSearchQuery(query);
+    
+    // If Google Maps is initialized and we have a location query, fetch real restaurants
+    if (initialized && query.trim()) {
+      try {
+        const googleResults = await fetchRestaurants(query, filters.cuisine);
+        if (googleResults && googleResults.length > 0) {
+          setUseGoogleData(true);
+          setAllRestaurants(googleResults);
+        } else {
+          // Fall back to mock data if Google search fails
+          setUseGoogleData(false);
+          setAllRestaurants(mockRestaurants);
+        }
+      } catch (err) {
+        console.error('Failed to fetch from Google Maps:', err);
+        setUseGoogleData(false);
+        setAllRestaurants(mockRestaurants);
+      }
+    } else if (!query.trim()) {
+      // Reset to mock data when search is cleared
+      setUseGoogleData(false);
+      setAllRestaurants(mockRestaurants);
+    }
   };
 
   const handleViewDetails = (restaurant) => {
@@ -87,11 +128,28 @@ function App() {
             <h2 className="results-title">
               {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'Restaurant' : 'Restaurants'} Found
             </h2>
+            {useGoogleData && (
+              <div className="google-maps-indicator">
+                <span className="google-maps-badge">🗺️ Real Places</span>
+                <span className="google-maps-text">Powered by Google Maps</span>
+              </div>
+            )}
           </div>
-          <RestaurantList 
-            restaurants={filteredRestaurants} 
-            onViewDetails={handleViewDetails} 
-          />
+          
+          {loading && (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p className="loading-text">Searching for restaurants...</p>
+            </div>
+          )}
+          
+          {!loading && (
+            <RestaurantList 
+          restaurants={filteredRestaurants} 
+          onViewDetails={handleViewDetails} 
+          searchQuery={searchQuery}
+        />
+          )}
         </div>
       </div>
       
