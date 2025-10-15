@@ -1,8 +1,8 @@
 // Google Maps Configuration
-// Replace with your actual Google Maps API key
+// Uses Vite environment variables - see .env file
 
 export const GOOGLE_MAPS_CONFIG = {
-  apiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE',
+  apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE',
   libraries: ['places'],
   version: 'weekly'
 };
