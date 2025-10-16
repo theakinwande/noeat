@@ -7,6 +7,7 @@ export const restaurants = [
     rating: 4.5,
     address: "123 Main St, Foodville",
     dietaryOptions: ["Vegetarian", "Gluten-Free"],
+    distance: 1200,
     image: "https://placehold.co/800x600/FF6B6B/FFFFFF?text=Pasta%0AParadise",
     description: "Authentic Italian cuisine with homemade pasta and wood-fired pizzas.",
     menu: [

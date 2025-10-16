@@ -8,6 +8,9 @@ const Filters = ({ filters, setFilters }) => {
     let count = 0;
     if (filters.cuisine !== 'All') count++;
     if (filters.price !== 'all') count++;
+    if (filters.distance && filters.distance !== 5000) count++;
+    if (filters.openNow) count++;
+    if (filters.minRating && filters.minRating > 0) count++;
     count += filters.dietary.length;
     setActiveFilterCount(count);
   }, [filters]);
@@ -32,7 +35,10 @@ const Filters = ({ filters, setFilters }) => {
     setFilters({
       cuisine: 'All',
       price: 'all',
-      dietary: []
+      dietary: [],
+      distance: 5000,
+      openNow: false,
+      minRating: 0
     });
   };
 
@@ -82,12 +88,66 @@ const Filters = ({ filters, setFilters }) => {
       </div>
       
       <div className="filter-group">
+        <h3 className="filter-label">Distance</h3>
+        <div className="distance-filter">
+          <input
+            type="range"
+            min="1000"
+            max="20000"
+            step="1000"
+            value={filters.distance || 5000}
+            onChange={(e) => setFilters({ ...filters, distance: parseInt(e.target.value) })}
+            className="distance-slider"
+          />
+          <div className="distance-labels">
+            <span>1km</span>
+            <span className="distance-value">{(filters.distance || 5000) / 1000}km</span>
+            <span>20km</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="filter-group">
+        <h3 className="filter-label">Minimum Rating</h3>
+        <div className="rating-filter">
+          <input
+            type="range"
+            min="0"
+            max="5"
+            step="0.5"
+            value={filters.minRating || 0}
+            onChange={(e) => setFilters({ ...filters, minRating: parseFloat(e.target.value) })}
+            className="rating-slider"
+          />
+          <div className="rating-labels">
+            <span>Any</span>
+            <span className="rating-value">{(filters.minRating || 0).toFixed(1)}★</span>
+            <span>5★</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="filter-group">
+        <h3 className="filter-label">Operating Hours</h3>
+        <div className="hours-filter">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={filters.openNow || false}
+              onChange={(e) => setFilters({ ...filters, openNow: e.target.checked })}
+            />
+            <span className="checkbox-text">Open Now</span>
+          </label>
+        </div>
+      </div>
+      
+      <div className="filter-group">
         <h3 className="filter-label">Dietary Preferences</h3>
         <div className="filter-buttons">
-          {dietaryOptions.map((option) => (
+          {dietaryOptions.map(option => (
             <button
               key={option}
-              onClick={() => handleDietaryChange(option)}
+              onClick={() => handleDietaryToggle(option)}
               className={`filter-button ${
                 filters.dietary.includes(option) ? 'filter-button-active' : ''
               }`}

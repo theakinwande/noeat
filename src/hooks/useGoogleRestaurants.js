@@ -5,6 +5,7 @@ export const useGoogleRestaurants = () => {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
 
   // Initialize Google Maps API
   useEffect(() => {
@@ -20,6 +21,23 @@ export const useGoogleRestaurants = () => {
     initializeMaps();
   }, []);
 
+  // Get user location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.warn('Failed to get user location:', error);
+        }
+      );
+    }
+  }, []);
+
   // Fetch restaurants function
   const fetchRestaurants = useCallback(async (location, cuisineType = '') => {
     if (!initialized) {
@@ -29,7 +47,7 @@ export const useGoogleRestaurants = () => {
     setLoading(true);
 
     try {
-      const results = await googleMapsService.searchRestaurants(location, 5000, cuisineType);
+      const results = await googleMapsService.searchRestaurants(location, 5000, cuisineType, userLocation);
       setRestaurants(results);
       return results;
     } catch (err) {
@@ -39,7 +57,7 @@ export const useGoogleRestaurants = () => {
     } finally {
       setLoading(false);
     }
-  }, [initialized]);
+  }, [initialized, userLocation]);
 
   // Get restaurant details
   const getRestaurantDetails = useCallback(async (placeId) => {
@@ -61,7 +79,8 @@ export const useGoogleRestaurants = () => {
     loading,
     initialized,
     fetchRestaurants,
-    getRestaurantDetails
+    getRestaurantDetails,
+    userLocation
   };
 };
 

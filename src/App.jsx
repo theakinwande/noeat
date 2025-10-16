@@ -8,7 +8,7 @@ import { restaurants as mockRestaurants } from './data/restaurants'
 import { useGoogleRestaurants } from './hooks/useGoogleRestaurants'
 
 function App() {
-  const { restaurants: googleRestaurants, loading, initialized, fetchRestaurants } = useGoogleRestaurants();
+  const { restaurants: googleRestaurants, loading, initialized, fetchRestaurants, userLocation } = useGoogleRestaurants();
   const [allRestaurants, setAllRestaurants] = useState(mockRestaurants);
   const [filteredRestaurants, setFilteredRestaurants] = useState(mockRestaurants);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -16,7 +16,10 @@ function App() {
   const [filters, setFilters] = useState({
     cuisine: 'All',
     price: 'all',
-    dietary: []
+    dietary: [],
+    distance: 5000,
+    openNow: false,
+    minRating: 0
   });
   const [useGoogleData, setUseGoogleData] = useState(false);
 
@@ -68,6 +71,31 @@ function App() {
           restaurant.dietaryOptions.includes(option)
         )
       );
+    }
+
+    // Filter by minimum rating
+    if (filters.minRating > 0) {
+      results = results.filter(restaurant => 
+        restaurant.rating >= filters.minRating
+      );
+    }
+
+    // Filter by distance (for Google Maps results with distance data)
+    if (filters.distance && filters.distance !== 5000) {
+      results = results.filter(restaurant => 
+        !restaurant.distance || restaurant.distance <= filters.distance
+      );
+    }
+
+    // Filter by open now (placeholder for future implementation)
+    if (filters.openNow) {
+      // This would need real-time data from Google Maps API
+      // For now, we'll filter by typical restaurant hours (11 AM - 10 PM)
+      const currentHour = new Date().getHours();
+      const isWithinTypicalHours = currentHour >= 11 && currentHour < 22;
+      if (!isWithinTypicalHours) {
+        results = []; // No restaurants open outside typical hours
+      }
     }
     
     setFilteredRestaurants(results);

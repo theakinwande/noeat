@@ -71,7 +71,7 @@ class GoogleMapsService {
     });
   }
 
-  async searchRestaurants(location, radius = 5000, cuisineType = '') {
+  async searchRestaurants(location, radius = 5000, cuisineType = '', userLocation = null) {
     if (!this.google) {
       const initialized = await this.initialize();
       if (!initialized) return [];
@@ -106,7 +106,9 @@ class GoogleMapsService {
     return new Promise((resolve) => {
       this.placesService.nearbySearch(request, (results, status) => {
         if (status === this.google.maps.places.PlacesServiceStatus.OK) {
-          const restaurants = results.map(place => this.transformPlaceToRestaurant(place));
+          const restaurants = results.map(place => 
+            this.transformPlaceToRestaurant(place, userLocation)
+          );
           resolve(restaurants);
         } else {
           console.warn('Places API returned status:', status);
@@ -130,7 +132,7 @@ class GoogleMapsService {
     });
   }
 
-  transformPlaceToRestaurant(place) {
+  transformPlaceToRestaurant(place, userLocation = null) {
     // Extract price range from price level (0-4, where 4 is most expensive)
     const priceRange = this.getPriceRange(place.price_level);
     
@@ -139,6 +141,17 @@ class GoogleMapsService {
     
     // Generate a cuisine type from types and name
     const cuisine = this.extractCuisine(place.types, place.name);
+
+    // Calculate distance if user location is provided
+    let distance = null;
+    if (userLocation && place.geometry && place.geometry.location) {
+      distance = this.calculateDistance(
+        userLocation.lat, 
+        userLocation.lng,
+        place.geometry.location.lat(),
+        place.geometry.location.lng()
+      );
+    }
 
     return {
       id: place.place_id,
@@ -159,6 +172,7 @@ class GoogleMapsService {
         lat: place.geometry.location.lat(),
         lng: place.geometry.location.lng()
       },
+      distance: distance,
       isOpen: place.opening_hours ? place.opening_hours.isOpen() : null,
       phoneNumber: place.formatted_phone_number || '',
       website: place.website || ''
@@ -253,6 +267,22 @@ class GoogleMapsService {
 
     // Default to International if we can't determine
     return 'International';
+  }
+
+  // Calculate distance between two points using Haversine formula
+  calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI / 180; // φ, λ in radians
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return Math.round(R * c); // Distance in meters
   }
 
   // Get detailed place information (for restaurant detail view)
