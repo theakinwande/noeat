@@ -1,75 +1,82 @@
-# React + TypeScript + Vite
+# NoEat — React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A small demo app that shows nearby restaurants using the Google Maps JavaScript API and React.
 
-Currently, two official plugins are available:
+This repository is built with Vite, React (JSX/TS), Tailwind CSS, and uses the Google Maps Places API to fetch and display restaurants.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick start
 
-## React Compiler
+1. Install dependencies
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. Create a `.env` file in the project root and add your Google Maps API key:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+VITE_GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+3. Run the dev server
+
+```bash
+npm run dev
+```
+
+Open http://localhost:5173 (Vite default) in your browser.
+
+## Available scripts
+
+Scripts are defined in `package.json` and match this project:
+
+- `npm run dev` — start the Vite dev server
+- `npm run build` — run TypeScript build and generate a production build with Vite
+- `npm run preview` — preview the production build locally
+- `npm run lint` — run ESLint
+
+Example:
+
+```bash
+npm run build
+npm run preview
+```
+
+## Environment variables
+
+This project uses Vite environment variables. The Google Maps API key should be provided as:
+
+```
+VITE_GOOGLE_MAPS_API_KEY
+```
+
+The app reads this key from `src/config/googleMaps.js` and falls back to a placeholder string if not set.
+
+## Project structure (important files)
+
+- `src/main.tsx` — app entry
+- `src/App.jsx` — main app component
+- `src/components/` — React components (Header, SearchBar, RestaurantList, RestaurantCard, RestaurantDetail, Filters, Footer, Layout)
+- `src/config/googleMaps.js` — Google Maps configuration and API key usage
+- `src/hooks/useGoogleRestaurants.js` — hook that fetches restaurants using the Google Maps Places API
+- `src/services/googleMapsService.js` — wrapper around the Google Maps JS API
+- `src/data/restaurants.js` — seed/static data used by the app
+
+## Notes and tips
+
+- Register and restrict your Google Maps API key to your application origin for security.
+- If the map or places data doesn't load, check the browser console for API errors (billing, quota, or referrer restrictions).
+- Tailwind CSS is configured in the project — edit `tailwind.config.js` and `index.css` to change styles.
+
+## Development and linting
+
+- ESLint is configured; run `npm run lint` to check for issues. Adjust `eslint.config.js` as needed.
+- TypeScript types are included; `npm run build` runs `tsc -b` before `vite build`.
+
+## License
+
+This project is provided as-is.
+
+---
+
+If you'd like, I can also: add a minimal CONTRIBUTING.md, create a `.env.example`, or wire up GitHub Actions to run lint/build on push. Tell me which you'd prefer.
