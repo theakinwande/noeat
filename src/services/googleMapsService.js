@@ -10,13 +10,36 @@ class GoogleMapsService {
   async initialize() {
     try {
       // Check if API key is configured
-      if (!GOOGLE_MAPS_CONFIG.apiKey || GOOGLE_MAPS_CONFIG.apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-        console.error('Google Maps API key not configured');
+      if (!GOOGLE_MAPS_CONFIG.apiKey) {
+        console.error(
+          'Google Maps API key is missing!\n\n' +
+          'To fix this:\n' +
+          '1. Create a .env file in the project root if it doesn\'t exist\n' +
+          '2. Add your API key: VITE_GOOGLE_MAPS_API_KEY=your_api_key_here\n' +
+          '3. Restart the development server\n\n' +
+          'Need an API key? Visit: https://console.cloud.google.com/google/maps-apis/credentials'
+        );
         return false;
       }
+
+      console.log('Initializing Google Maps with config:', {
+        apiKeyStatus: GOOGLE_MAPS_CONFIG.apiKey ? 'Configured' : 'Missing',
+        libraries: GOOGLE_MAPS_CONFIG.libraries,
+        version: GOOGLE_MAPS_CONFIG.version,
+        region: GOOGLE_MAPS_CONFIG.region,
+        language: GOOGLE_MAPS_CONFIG.language
+      });
       
       // Load Google Maps API dynamically
       await this.loadGoogleMapsAPI();
+      
+      // Verify the API loaded correctly
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        console.error('Google Maps API or Places library not loaded correctly');
+        return false;
+      }
+
+      console.log('Google Maps API initialized successfully');
       return true;
     } catch (error) {
       console.error('Failed to load Google Maps API:', error);
@@ -35,9 +58,20 @@ class GoogleMapsService {
 
       // Create script element with explicit places library
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_CONFIG.apiKey}&libraries=places&v=${GOOGLE_MAPS_CONFIG.version}`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_CONFIG.apiKey}&libraries=places,geometry&callback=initMap&v=${GOOGLE_MAPS_CONFIG.version}`;
       script.async = true;
       script.defer = true;
+      
+      // Add global callback
+      window.initMap = () => {
+        console.log('Google Maps callback executed');
+        if (window.google && window.google.maps) {
+          this.google = window.google;
+          resolve();
+        } else {
+          reject(new Error('Google Maps failed to load properly'));
+        }
+      };
 
       script.onload = () => {
         this.google = window.google;
@@ -73,7 +107,10 @@ class GoogleMapsService {
 
   async searchRestaurants(location, radius = 5000, cuisineType = '', userLocation = null) {
     try {
+      console.log('Searching restaurants with params:', { location, radius, cuisineType, hasUserLocation: !!userLocation });
+      
       if (!this.google) {
+        console.log('Google Maps not initialized, attempting to initialize...');
         const initialized = await this.initialize();
         if (!initialized) {
           console.error('Google Maps not initialized');
