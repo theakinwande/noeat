@@ -5,7 +5,28 @@ const SearchBar = ({ onSearch }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSearch(location);
+    // If location is empty, try to use current location
+    if (!location.trim()) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const coords = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            onSearch(coords);
+          },
+          (error) => {
+            console.error('Error getting location:', error);
+            onSearch('New York'); // Fallback to New York
+          }
+        );
+      } else {
+        onSearch('New York'); // Fallback to New York if geolocation is not available
+      }
+    } else {
+      onSearch(location);
+    }
   };
 
   return (

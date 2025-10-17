@@ -1,4 +1,8 @@
 import { GOOGLE_MAPS_CONFIG } from '../config/googleMaps.js';
+import { mockRestaurants } from '../data/mockRestaurants';
+
+// Set this to true to use mock data instead of Google Maps API
+const USE_MOCK_DATA = true;
 
 class GoogleMapsService {
   constructor() {
@@ -11,19 +15,22 @@ class GoogleMapsService {
     try {
       // Check if API key is configured
       if (!GOOGLE_MAPS_CONFIG.apiKey) {
-        console.error(
+        const errorMessage = 
           'Google Maps API key is missing!\n\n' +
           'To fix this:\n' +
           '1. Create a .env file in the project root if it doesn\'t exist\n' +
           '2. Add your API key: VITE_GOOGLE_MAPS_API_KEY=your_api_key_here\n' +
           '3. Restart the development server\n\n' +
-          'Need an API key? Visit: https://console.cloud.google.com/google/maps-apis/credentials'
-        );
+          'Need an API key? Visit: https://console.cloud.google.com/google/maps-apis/credentials';
+        
+        console.error(errorMessage);
         return false;
       }
 
-      console.log('Initializing Google Maps with config:', {
-        apiKeyStatus: GOOGLE_MAPS_CONFIG.apiKey ? 'Configured' : 'Missing',
+      console.log('Starting Google Maps initialization...');
+      console.log('Configuration:', {
+        apiKeyStatus: 'Configured',
+        apiKeyLength: GOOGLE_MAPS_CONFIG.apiKey.length,
         libraries: GOOGLE_MAPS_CONFIG.libraries,
         version: GOOGLE_MAPS_CONFIG.version,
         region: GOOGLE_MAPS_CONFIG.region,
@@ -51,27 +58,88 @@ class GoogleMapsService {
     return new Promise((resolve, reject) => {
       // Check if Google Maps is already loaded
       if (window.google && window.google.maps) {
+        console.log('Google Maps already loaded');
         this.google = window.google;
         resolve();
         return;
       }
 
-      // Create script element with explicit places library
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_CONFIG.apiKey}&libraries=places,geometry&callback=initMap&v=${GOOGLE_MAPS_CONFIG.version}`;
-      script.async = true;
-      script.defer = true;
+      console.log('Starting to load Google Maps API...');
+
+      // First, test API key with a simple request
+      console.log('Testing API key configuration...');
       
-      // Add global callback
-      window.initMap = () => {
-        console.log('Google Maps callback executed');
-        if (window.google && window.google.maps) {
-          this.google = window.google;
-          resolve();
-        } else {
-          reject(new Error('Google Maps failed to load properly'));
-        }
-      };
+      const testUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=New York&key=${GOOGLE_MAPS_CONFIG.apiKey}`;
+      
+      fetch(testUrl)
+        .then(response => response.json())
+        .then(data => {
+          console.log('API Key test result:', data.status, data.error_message || '');
+          
+          if (data.status === 'REQUEST_DENIED') {
+            const errorMessage = data.error_message || 'Request denied';
+            console.error(`
+Google Maps API Key Error: ${errorMessage}
+
+Common fixes:
+1. Enable these APIs in Google Cloud Console:
+   - Maps JavaScript API
+   - Places API
+   - Geocoding API
+
+2. Check API key restrictions:
+   - Go to: https://console.cloud.google.com/google/maps-apis/credentials
+   - Click on your API key
+   - Under "Application restrictions":
+     * Set to "None" for testing, or
+     * Add "localhost" and "127.0.0.1" to HTTP referrers
+   - Under "API restrictions":
+     * Enable the required APIs listed above
+
+3. Verify billing is enabled for your project
+
+Need help? Visit: https://developers.google.com/maps/documentation/javascript/get-api-key
+`);
+            throw new Error(`API Key error: ${errorMessage}`);
+          } else if (data.error_message) {
+            throw new Error(`API Key error: ${data.error_message}`);
+          }
+          
+          // If test successful, load the full API
+          const script = document.createElement('script');
+          const callbackName = 'googleMapsCallback_' + Math.random().toString(36).substr(2, 9);
+          
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_CONFIG.apiKey}&libraries=places,geometry&callback=${callbackName}&v=${GOOGLE_MAPS_CONFIG.version}`;
+          script.async = true;
+          script.defer = true;
+          
+          // Add global callback with unique name
+          window[callbackName] = () => {
+            console.log('Google Maps script loaded successfully');
+            if (window.google && window.google.maps) {
+              this.google = window.google;
+              resolve();
+            } else {
+              reject(new Error('Google Maps API loaded but google.maps is not available'));
+            }
+            // Cleanup
+            delete window[callbackName];
+            script.remove();
+          };
+
+          // Handle script load errors
+          script.onerror = () => {
+            reject(new Error('Failed to load Google Maps script'));
+            delete window[callbackName];
+            script.remove();
+          };
+
+          document.head.appendChild(script);
+        })
+        .catch(error => {
+          console.error('API Key validation failed:', error);
+          reject(error);
+        });
 
       script.onload = () => {
         this.google = window.google;
@@ -106,6 +174,27 @@ class GoogleMapsService {
   }
 
   async searchRestaurants(location, radius = 5000, cuisineType = '', userLocation = null) {
+    if (USE_MOCK_DATA) {
+      console.log('Using mock data for restaurants');
+      
+      // Filter restaurants based on cuisine type
+      let results = [...mockRestaurants];
+      
+      if (cuisineType && cuisineType !== 'All') {
+        results = results.filter(restaurant => 
+          restaurant.cuisine.toLowerCase() === cuisineType.toLowerCase()
+        );
+      }
+      
+      // Sort by distance
+      results = results.sort((a, b) => a.distance - b.distance);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return results;
+    }
+
     try {
       console.log('Searching restaurants with params:', { location, radius, cuisineType, hasUserLocation: !!userLocation });
       
@@ -128,15 +217,26 @@ class GoogleMapsService {
       }
 
       // Create a map instance for the Places service
+      const defaultLocation = { lat: 40.7128, lng: -74.0060 }; // New York City as default
       const map = new this.google.maps.Map(mapDiv, {
-        center: userLocation || { lat: 0, lng: 0 },
+        center: userLocation || defaultLocation,
         zoom: 13
       });
       
       this.placesService = new this.google.maps.places.PlacesService(map);
+      
+      console.log('Places service created successfully');
 
       // Get the search location
-      const searchLocation = await this.geocodeLocation(location);
+      let searchLocation;
+      if (typeof location === 'string') {
+        console.log('Geocoding location:', location);
+        searchLocation = await this.geocodeLocation(location);
+        console.log('Geocoding result:', searchLocation);
+      } else {
+        searchLocation = location;
+      }
+
       if (!searchLocation) {
         console.error('Could not determine search location');
         return [];
@@ -154,15 +254,25 @@ class GoogleMapsService {
         keyword: query
       };
 
+      console.log('Searching with request:', request);
+
       return new Promise((resolve) => {
         this.placesService.nearbySearch(request, (results, status) => {
+          console.log('Places API response:', { status, resultCount: results?.length });
+          
           if (status === this.google.maps.places.PlacesServiceStatus.OK && results) {
+            console.log('Raw results:', results.slice(0, 2)); // Log first 2 results for debugging
             const restaurants = results.map(place => 
               this.transformPlaceToRestaurant(place, userLocation)
             );
             resolve(restaurants);
           } else {
             console.warn('Places API returned status:', status);
+            if (status === this.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+              console.log('Try adjusting the search radius or location');
+            } else if (status === this.google.maps.places.PlacesServiceStatus.INVALID_REQUEST) {
+              console.log('Invalid request - check location format');
+            }
             resolve([]);
           }
         });
@@ -179,10 +289,39 @@ class GoogleMapsService {
       return location;
     }
 
+    // If location is empty, try to use browser's geolocation
+    if (!location.trim()) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+        
+        return new this.google.maps.LatLng(
+          position.coords.latitude,
+          position.coords.longitude
+        );
+      } catch (error) {
+        console.log('Could not get current location:', error);
+        // Use New York City as fallback
+        return new this.google.maps.LatLng(40.7128, -74.0060);
+      }
+    }
+
     // Otherwise, geocode the address
     return new Promise((resolve) => {
       const geocoder = new this.google.maps.Geocoder();
-      geocoder.geocode({ address: location }, (results, status) => {
+      const geocodeRequest = {
+        address: location,
+        componentRestrictions: { country: 'US' }, // Limit to US addresses
+        bounds: new this.google.maps.LatLngBounds(
+          new this.google.maps.LatLng(25.82, -124.39), // SW corner of US
+          new this.google.maps.LatLng(49.38, -66.94)   // NE corner of US
+        )
+      };
+
+      geocoder.geocode(geocodeRequest, (results, status) => {
+        console.log('Geocoding results:', { status, results: results?.[0]?.formatted_address });
+        
         if (status === this.google.maps.GeocoderStatus.OK && results[0]) {
           resolve(results[0].geometry.location);
         } else {

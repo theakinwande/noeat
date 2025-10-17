@@ -7,8 +7,12 @@ export const useGoogleRestaurants = () => {
   const [initialized, setInitialized] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
 
-  // Initialize Google Maps API
+  // Initialize Google Maps API or mock mode
   useEffect(() => {
+    if (USE_MOCK_DATA) {
+      setInitialized(true);
+      return;
+    }
     const initializeMaps = async () => {
       try {
         const success = await googleMapsService.initialize();
@@ -17,7 +21,6 @@ export const useGoogleRestaurants = () => {
         console.error('Failed to initialize Google Maps:', err);
       }
     };
-
     initializeMaps();
   }, []);
 

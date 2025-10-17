@@ -30,6 +30,26 @@ function App() {
   });
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    // Check if the API key is properly configured
+    const checkApiKey = async () => {
+      try {
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=test&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+        );
+        const data = await response.json();
+        
+        if (data.status === 'REQUEST_DENIED') {
+          setError(`Google Maps API Error: ${data.error_message || 'API key needs configuration'}`);
+        }
+      } catch (err) {
+        console.error('API check failed:', err);
+      }
+    };
+    
+    checkApiKey();
+  }, []);
+
   // Update restaurants when Google data changes
   useEffect(() => {
     if (googleRestaurants?.length > 0) {
