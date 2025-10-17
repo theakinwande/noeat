@@ -518,4 +518,6 @@ Need help? Visit: https://developers.google.com/maps/documentation/javascript/ge
 // Create a singleton instance
 export const googleMapsService = new GoogleMapsService();
 
+export { USE_MOCK_DATA };
+
 export default GoogleMapsService;

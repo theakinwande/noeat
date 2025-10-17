@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { googleMapsService } from '../services/googleMapsService';
+import { googleMapsService, USE_MOCK_DATA } from '../services/googleMapsService';
 
 export const useGoogleRestaurants = () => {
   const [restaurants, setRestaurants] = useState([]);
