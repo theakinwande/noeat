@@ -5,6 +5,7 @@ import Filters from './components/Filters';
 import RestaurantList from './components/RestaurantList';
 import RestaurantDetail from './components/RestaurantDetail';
 import { useGoogleRestaurants } from './hooks/useGoogleRestaurants';
+import { USE_MOCK_DATA } from './services/googleMapsService';
 
 function App() {
   const { 
@@ -31,6 +32,9 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Only check API key if we're not using mock data
+    if (USE_MOCK_DATA) return;
+    
     // Check if the API key is properly configured
     const checkApiKey = async () => {
       try {

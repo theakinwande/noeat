@@ -2,7 +2,7 @@ import { GOOGLE_MAPS_CONFIG } from '../config/googleMaps.js';
 import { mockRestaurants } from '../data/mockRestaurants';
 
 // Set this to true to use mock data instead of Google Maps API
-const USE_MOCK_DATA = true;
+export const USE_MOCK_DATA = true;
 
 class GoogleMapsService {
   constructor() {
@@ -517,7 +517,5 @@ Need help? Visit: https://developers.google.com/maps/documentation/javascript/ge
 
 // Create a singleton instance
 export const googleMapsService = new GoogleMapsService();
-
-export { USE_MOCK_DATA };
 
 export default GoogleMapsService;
