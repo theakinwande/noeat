@@ -38,7 +38,8 @@ const Filters = ({ filters, setFilters }) => {
       dietary: [],
       distance: 5000,
       openNow: false,
-      minRating: 0
+      minRating: 0,
+      compareToUserLocation: true
     });
   };
 
@@ -87,6 +88,21 @@ const Filters = ({ filters, setFilters }) => {
         </div>
       </div>
       
+      <div className="filter-group">
+        <h3 className="filter-label">Location Options</h3>
+        <div className="location-options">
+          <label className="location-toggle">
+            <input
+              type="checkbox"
+              checked={filters.compareToUserLocation}
+              onChange={(e) => setFilters({ ...filters, compareToUserLocation: e.target.checked })}
+              className="location-checkbox"
+            />
+            Compare distances to my location
+          </label>
+        </div>
+      </div>
+
       <div className="filter-group">
         <h3 className="filter-label">Distance</h3>
         <div className="distance-filter">

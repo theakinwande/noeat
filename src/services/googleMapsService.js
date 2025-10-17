@@ -10,8 +10,8 @@ class GoogleMapsService {
   async initialize() {
     try {
       // Check if API key is configured
-      if (GOOGLE_MAPS_CONFIG.apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-        console.warn('Google Maps API key not configured. Using mock data only.');
+      if (!GOOGLE_MAPS_CONFIG.apiKey || GOOGLE_MAPS_CONFIG.apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+        console.error('Google Maps API key not configured');
         return false;
       }
       
@@ -33,9 +33,9 @@ class GoogleMapsService {
         return;
       }
 
-      // Create script element
+      // Create script element with explicit places library
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_CONFIG.apiKey}&libraries=${GOOGLE_MAPS_CONFIG.libraries.join(',')}&v=${GOOGLE_MAPS_CONFIG.version}`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_CONFIG.apiKey}&libraries=places&v=${GOOGLE_MAPS_CONFIG.version}`;
       script.async = true;
       script.defer = true;
 
@@ -72,56 +72,80 @@ class GoogleMapsService {
   }
 
   async searchRestaurants(location, radius = 5000, cuisineType = '', userLocation = null) {
-    if (!this.google) {
-      const initialized = await this.initialize();
-      if (!initialized) return [];
-    }
-
-    // Create a map element (hidden) for the Places service
-    const map = new this.google.maps.Map(document.createElement('div'));
-    this.placesService = new this.google.maps.places.PlacesService(map);
-
-    // Geocode the location if it's a string (address)
-    let searchLocation;
-    if (typeof location === 'string') {
-      searchLocation = await this.geocodeLocation(location);
-      if (!searchLocation) return [];
-    } else {
-      searchLocation = location;
-    }
-
-    // Build the search query
-    let query = 'restaurant';
-    if (cuisineType && cuisineType !== 'All') {
-      query += ` ${cuisineType.toLowerCase()}`;
-    }
-
-    const request = {
-      location: searchLocation,
-      radius: radius,
-      keyword: query,
-      type: ['restaurant']
-    };
-
-    return new Promise((resolve) => {
-      this.placesService.nearbySearch(request, (results, status) => {
-        if (status === this.google.maps.places.PlacesServiceStatus.OK) {
-          const restaurants = results.map(place => 
-            this.transformPlaceToRestaurant(place, userLocation)
-          );
-          resolve(restaurants);
-        } else {
-          console.warn('Places API returned status:', status);
-          resolve([]);
+    try {
+      if (!this.google) {
+        const initialized = await this.initialize();
+        if (!initialized) {
+          console.error('Google Maps not initialized');
+          return [];
         }
+      }
+
+      // Create a hidden div for the Places service if not exists
+      let mapDiv = document.getElementById('google-maps-places');
+      if (!mapDiv) {
+        mapDiv = document.createElement('div');
+        mapDiv.id = 'google-maps-places';
+        mapDiv.style.display = 'none';
+        document.body.appendChild(mapDiv);
+      }
+
+      // Create a map instance for the Places service
+      const map = new this.google.maps.Map(mapDiv, {
+        center: userLocation || { lat: 0, lng: 0 },
+        zoom: 13
       });
-    });
+      
+      this.placesService = new this.google.maps.places.PlacesService(map);
+
+      // Get the search location
+      const searchLocation = await this.geocodeLocation(location);
+      if (!searchLocation) {
+        console.error('Could not determine search location');
+        return [];
+      }
+
+      // Build the search query
+      const query = cuisineType && cuisineType !== 'All' 
+        ? `${cuisineType.toLowerCase()} restaurant`
+        : 'restaurant';
+
+      const request = {
+        location: searchLocation,
+        radius: radius,
+        type: ['restaurant'],
+        keyword: query
+      };
+
+      return new Promise((resolve) => {
+        this.placesService.nearbySearch(request, (results, status) => {
+          if (status === this.google.maps.places.PlacesServiceStatus.OK && results) {
+            const restaurants = results.map(place => 
+              this.transformPlaceToRestaurant(place, userLocation)
+            );
+            resolve(restaurants);
+          } else {
+            console.warn('Places API returned status:', status);
+            resolve([]);
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error searching for restaurants:', error);
+      return [];
+    }
   }
 
-  async geocodeLocation(address) {
+  async geocodeLocation(location) {
+    // If location is already a LatLng object, return it
+    if (typeof location !== 'string') {
+      return location;
+    }
+
+    // Otherwise, geocode the address
     return new Promise((resolve) => {
       const geocoder = new this.google.maps.Geocoder();
-      geocoder.geocode({ address: address }, (results, status) => {
+      geocoder.geocode({ address: location }, (results, status) => {
         if (status === this.google.maps.GeocoderStatus.OK && results[0]) {
           resolve(results[0].geometry.location);
         } else {

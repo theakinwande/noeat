@@ -39,7 +39,7 @@ export const useGoogleRestaurants = () => {
   }, []);
 
   // Fetch restaurants function
-  const fetchRestaurants = useCallback(async (location, cuisineType = '') => {
+  const fetchRestaurants = useCallback(async (location, radius = 5000, cuisineType = '', compareToUserLocation = true) => {
     if (!initialized) {
       return;
     }
@@ -47,7 +47,12 @@ export const useGoogleRestaurants = () => {
     setLoading(true);
 
     try {
-      const results = await googleMapsService.searchRestaurants(location, 5000, cuisineType, userLocation);
+      const results = await googleMapsService.searchRestaurants(
+        location,
+        radius,
+        cuisineType,
+        compareToUserLocation ? userLocation : null
+      );
       setRestaurants(results);
       return results;
     } catch (err) {

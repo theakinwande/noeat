@@ -2,7 +2,7 @@
 // Uses Vite environment variables - see .env file
 
 export const GOOGLE_MAPS_CONFIG = {
-  apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE',
+  apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBm8pV0kpWUADaXaxE3CmbIP5Ql_EzYShg',
   libraries: ['places'],
   version: 'weekly'
 };

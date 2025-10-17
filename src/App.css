@@ -461,7 +461,27 @@ body {
   }
 }
 
-/* ===== FILTERS ===== */
+/* ===== FILTERS COMPONENT ===== */
+
+.location-options {
+  padding: 10px 0;
+}
+
+.location-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.location-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
 .filters {
   display: flex;
   gap: var(--spacing-lg);
