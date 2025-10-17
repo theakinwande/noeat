@@ -10,4 +10,20 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          vendor: ['react-router-dom']
+        }
+      }
+    }
+  },
+  server: {
+    port: 3000,
+    strictPort: true
+  }
 })
